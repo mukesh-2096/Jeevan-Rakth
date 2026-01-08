@@ -1,8 +1,11 @@
 "use client";
 import Link from "next/link";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
+import Toast from "@/components/Toast";
 
 export default function SignUp() {
+  const router = useRouter();
   const [userType, setUserType] = useState<"donor" | "hospital" | "ngo" | null>(null);
   const [formData, setFormData] = useState({
     name: "",
@@ -12,6 +15,10 @@ export default function SignUp() {
     confirmPassword: "",
     agreeToTerms: false,
   });
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value, type, checked } = e.target;
@@ -19,10 +26,104 @@ export default function SignUp() {
       ...prev,
       [name]: type === "checkbox" ? checked : value,
     }));
+    // Clear errors when user starts typing
+    if (error) setError("");
+    if (fieldErrors[name]) {
+      setFieldErrors(prev => ({ ...prev, [name]: "" }));
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+    setFieldErrors({});
+    setLoading(true);
+
+    // Client-side validation
+    const errors: Record<string, string> = {};
+    
+    if (!formData.name.trim()) {
+      errors.name = "Name is required";
+    }
+    if (!formData.email.trim()) {
+      errors.email = "Email is required";
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+      errors.email = "Invalid email format";
+    }
+    if ((userType === "donor" || userType === "ngo") && !formData.phone.trim()) {
+      errors.phone = "Phone number is required";
+    }
+    if (!formData.password) {
+      errors.password = "Password is required";
+    } else if (formData.password.length < 6) {
+      errors.password = "Password must be at least 6 characters";
+    } else if (!/[!@#$%^&*(),.?":{}|<>]/.test(formData.password)) {
+      errors.password = "Password must contain a special character";
+    }
+    if (!formData.confirmPassword) {
+      errors.confirmPassword = "Please confirm your password";
+    } else if (formData.password !== formData.confirmPassword) {
+      errors.confirmPassword = "Passwords do not match";
+    }
+    if (!formData.agreeToTerms) {
+      errors.agreeToTerms = "You must agree to the terms";
+    }
+
+    if (Object.keys(errors).length > 0) {
+      setFieldErrors(errors);
+      setLoading(false);
+      return;
+    }
+
+    try {
+      console.log('Submitting signup form:', {
+        name: formData.name,
+        email: formData.email,
+        phone: formData.phone,
+        role: userType,
+      });
+
+      const response = await fetch('/api/auth/signup', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          ...formData,
+          role: userType,
+        }),
+      });
+
+      const data = await response.json();
+      console.log('Signup response:', { status: response.status, data });
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Signup failed');
+      }
+
+      // Show success toast and redirect
+      setToast({ message: 'Account created successfully!', type: 'success' });
+      setTimeout(() => {
+        router.push('/login?registered=true');
+      }, 1500);
+    } catch (err: any) {
+      console.error('Signup error:', err);
+      setToast({ message: err.message || 'Something went wrong', type: 'error' });
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
     <div className="min-h-screen flex bg-[#fff7f7]">
+      {/* Toast Notification */}
+      {toast && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast(null)}
+        />
+      )}
 
       {/* LEFT BRAND PANEL - FIXED */}
       <div className="hidden lg:flex lg:w-1/2 flex-col px-20 bg-gradient-to-br from-[#fff1f1] to-white sticky top-0 h-screen">
@@ -107,7 +208,7 @@ export default function SignUp() {
 
           {/* FORM */}
           {userType && (
-            <form onSubmit={(e) => { e.preventDefault(); console.log(formData, userType); }} className="space-y-5">
+            <form onSubmit={handleSubmit} className="space-y-5">
 
               <button
                 type="button"
@@ -119,6 +220,8 @@ export default function SignUp() {
                 </svg>
                 Change role
               </button>
+
+
 
               {/* Role Badge */}
               <div className="p-4 bg-red-50 border border-red-200 rounded-lg mb-6">
@@ -153,10 +256,17 @@ export default function SignUp() {
                   type="text"
                   value={formData.name}
                   placeholder={userType === "hospital" ? "City Hospital" : "John Doe"}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:border-red-500 focus:ring-1 focus:ring-red-500 outline-none transition text-gray-900"
+                  className={`w-full px-4 py-3 border rounded-lg focus:ring-1 outline-none transition text-gray-900 ${
+                    fieldErrors.name
+                      ? "border-red-500 focus:border-red-500 focus:ring-red-500"
+                      : "border-gray-300 focus:border-red-500 focus:ring-red-500"
+                  }`}
                   onChange={handleInputChange}
                   required
                 />
+                {fieldErrors.name && (
+                  <p className="mt-1 text-xs text-red-600">{fieldErrors.name}</p>
+                )}
               </div>
 
               {/* EMAIL */}
@@ -169,10 +279,17 @@ export default function SignUp() {
                   type="email"
                   value={formData.email}
                   placeholder="you@example.com"
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:border-red-500 focus:ring-1 focus:ring-red-500 outline-none transition text-gray-900"
+                  className={`w-full px-4 py-3 border rounded-lg focus:ring-1 outline-none transition text-gray-900 ${
+                    fieldErrors.email
+                      ? "border-red-500 focus:border-red-500 focus:ring-red-500"
+                      : "border-gray-300 focus:border-red-500 focus:ring-red-500"
+                  }`}
                   onChange={handleInputChange}
                   required
                 />
+                {fieldErrors.email && (
+                  <p className="mt-1 text-xs text-red-600">{fieldErrors.email}</p>
+                )}
               </div>
 
               {/* PHONE */}
@@ -186,10 +303,17 @@ export default function SignUp() {
                     type="tel"
                     value={formData.phone}
                     placeholder="+91 98765 43210"
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:border-red-500 focus:ring-1 focus:ring-red-500 outline-none transition text-gray-900"
+                    className={`w-full px-4 py-3 border rounded-lg focus:ring-1 outline-none transition text-gray-900 ${
+                      fieldErrors.phone
+                        ? "border-red-500 focus:border-red-500 focus:ring-red-500"
+                        : "border-gray-300 focus:border-red-500 focus:ring-red-500"
+                    }`}
                     onChange={handleInputChange}
                     required
                   />
+                  {fieldErrors.phone && (
+                    <p className="mt-1 text-xs text-red-600">{fieldErrors.phone}</p>
+                  )}
                 </div>
               )}
 
@@ -203,10 +327,17 @@ export default function SignUp() {
                   type="password"
                   value={formData.password}
                   placeholder="••••••••"
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:border-red-500 focus:ring-1 focus:ring-red-500 outline-none transition text-gray-900"
+                  className={`w-full px-4 py-3 border rounded-lg focus:ring-1 outline-none transition text-gray-900 ${
+                    fieldErrors.password
+                      ? "border-red-500 focus:border-red-500 focus:ring-red-500"
+                      : "border-gray-300 focus:border-red-500 focus:ring-red-500"
+                  }`}
                   onChange={handleInputChange}
                   required
                 />
+                {fieldErrors.password && (
+                  <p className="mt-1 text-xs text-red-600">{fieldErrors.password}</p>
+                )}
               </div>
 
               {/* CONFIRM PASSWORD */}
@@ -219,40 +350,53 @@ export default function SignUp() {
                   type="password"
                   value={formData.confirmPassword}
                   placeholder="••••••••"
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:border-red-500 focus:ring-1 focus:ring-red-500 outline-none transition text-gray-900"
+                  className={`w-full px-4 py-3 border rounded-lg focus:ring-1 outline-none transition text-gray-900 ${
+                    fieldErrors.confirmPassword
+                      ? "border-red-500 focus:border-red-500 focus:ring-red-500"
+                      : "border-gray-300 focus:border-red-500 focus:ring-red-500"
+                  }`}
                   onChange={handleInputChange}
                   required
                 />
+                {fieldErrors.confirmPassword && (
+                  <p className="mt-1 text-xs text-red-600">{fieldErrors.confirmPassword}</p>
+                )}
               </div>
 
               {/* TERMS */}
-              <div className="flex items-start gap-2">
-                <input
-                  type="checkbox"
-                  name="agreeToTerms"
-                  checked={formData.agreeToTerms}
-                  onChange={handleInputChange}
-                  className="mt-1 w-4 h-4 text-red-600 border-gray-300 rounded focus:ring-red-500 cursor-pointer"
-                  required
-                />
-                <label className="text-sm text-gray-600">
-                  I agree to the{" "}
-                  <Link href="/terms" className="text-red-600 hover:text-red-700 font-semibold cursor-pointer">
-                    Terms and Conditions
-                  </Link>{" "}
-                  and{" "}
-                  <Link href="/privacy" className="text-red-600 hover:text-red-700 font-semibold cursor-pointer">
-                    Privacy Policy
-                  </Link>
-                </label>
+              <div>
+                <div className="flex items-start gap-2">
+                  <input
+                    type="checkbox"
+                    name="agreeToTerms"
+                    checked={formData.agreeToTerms}
+                    onChange={handleInputChange}
+                    className="mt-1 w-4 h-4 text-red-600 border-gray-300 rounded focus:ring-red-500 cursor-pointer"
+                    required
+                  />
+                  <label className="text-sm text-gray-600">
+                    I agree to the{" "}
+                    <Link href="/terms" className="text-red-600 hover:text-red-700 font-semibold cursor-pointer">
+                      Terms and Conditions
+                    </Link>{" "}
+                    and{" "}
+                    <Link href="/privacy" className="text-red-600 hover:text-red-700 font-semibold cursor-pointer">
+                      Privacy Policy
+                    </Link>
+                  </label>
+                </div>
+                {fieldErrors.agreeToTerms && (
+                  <p className="mt-1 text-xs text-red-600">{fieldErrors.agreeToTerms}</p>
+                )}
               </div>
 
               {/* SUBMIT */}
               <button
                 type="submit"
-                className="w-full py-3.5 bg-red-600 text-white rounded-lg font-semibold hover:bg-red-700 transition shadow-md cursor-pointer"
+                disabled={loading}
+                className="w-full py-3.5 bg-red-600 text-white rounded-lg font-semibold hover:bg-red-700 transition shadow-md cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Create Account
+                {loading ? 'Creating Account...' : 'Create Account'}
               </button>
 
               {/* Divider */}
