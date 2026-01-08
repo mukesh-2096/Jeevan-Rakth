@@ -28,7 +28,7 @@ export default function HeroSection() {
         {/* Heading */}
         <h1
           className="text-[3.4rem] md:text-[4.6rem] leading-tight mb-8"
-          style={{ fontFamily: "'Playfair Display', serif" }}
+          style={{ fontFamily: "'Arial'" }}
         >
           <span className="text-[#1e1e1e]">
             Every Drop Counts.

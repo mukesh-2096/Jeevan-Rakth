@@ -18,7 +18,7 @@ export default function Navbar() {
           </div>
 
           <span
-            className="text-xl font-serif font-bold text-[#1e1e1e]"
+            className="text-xl font-Arial font-bold text-[#1e1e1e]"
           >
             Jeevan-Rakth
           </span>
@@ -31,7 +31,7 @@ export default function Navbar() {
           <Link
             href="/login"
             className="px-5 py-2 rounded-xl font-medium transition-all duration-300 text-gray-800 hover:bg-[#f59f0a] hover:text-white">
-            Sign In
+            Login
           </Link>
 
           {/* Get Started */}
