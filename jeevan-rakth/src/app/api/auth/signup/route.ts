@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import connectDB from '@/lib/mongodb';
 import User from '@/models/User';
+import ContactDetails from '@/models/ContactDetails';
 import bcrypt from 'bcryptjs';
 
 export async function POST(req: NextRequest) {
@@ -89,7 +90,25 @@ export async function POST(req: NextRequest) {
       role,
     });
 
-    console.log('User created successfully:', user._id);
+    // Create contact details in separate collection with role
+    console.log('Creating contact details');
+    try {
+      await ContactDetails.create({
+        userId: user._id,
+        role: user.role,
+      });
+      console.log('Contact details created successfully');
+    } catch (contactError: any) {
+      // If contact details already exist, just log and continue
+      if (contactError.code === 11000) {
+        console.log('Contact details already exist for this user, skipping...');
+      } else {
+        // If it's a different error, log it but don't fail the signup
+        console.error('Contact details creation error (non-critical):', contactError);
+      }
+    }
+
+    console.log('User and contact details created successfully:', user._id);
     return NextResponse.json(
       {
         message: 'Account created successfully',

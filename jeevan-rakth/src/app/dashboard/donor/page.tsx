@@ -1,11 +1,32 @@
 "use client";
-import { useRouter } from "next/navigation";
-import Link from "next/link";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
+import Sidebar from "./components/Sidebar";
+import Navbar from "./components/Navbar";
+import Overview from "./components/Overview";
+import NearbyHospitals from "./components/NearbyHospitals";
+import MyRegistrations from "./components/MyRegistrations";
+import ProfileSettings from "./components/ProfileSettings";
+import MyAccount from "./components/MyAccount";
+import RegistrationForm from "./components/registration/RegistrationForm";
 
 export default function DonorDashboard() {
-  const router = useRouter();
   const { user, loading } = useAuth({ requiredRole: 'donor' });
+  
+  // Load active tab from localStorage or default to overview
+  const [activeTab, setActiveTab] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('donorActiveTab') || 'overview';
+    }
+    return 'overview';
+  });
+
+  // Save active tab to localStorage when it changes
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('donorActiveTab', activeTab);
+    }
+  }, [activeTab]);
 
   // Show loading state while checking authentication
   if (loading) {
@@ -24,42 +45,26 @@ export default function DonorDashboard() {
     return null;
   }
 
-  const handleLogout = async () => {
-    try {
-      await fetch('/api/auth/logout', { method: 'POST' });
-      router.push('/login');
-    } catch (error) {
-      console.error('Logout failed:', error);
-    }
-  };
-
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white shadow">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
-          <h1 className="text-2xl font-bold text-gray-900">Donor Dashboard</h1>
-          <button
-            onClick={handleLogout}
-            className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition cursor-pointer"
-          >
-            Logout
-          </button>
-        </div>
-      </header>
+    <div className="min-h-screen bg-gray-50 flex">
+      {/* SIDEBAR */}
+      <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} user={user} />
 
-      {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="bg-white rounded-lg shadow p-6">
-          <h2 className="text-xl font-semibold text-gray-900 mb-4">Welcome, {user.name}!</h2>
-          <p className="text-gray-600 mb-2">
-            This is your donor dashboard. Here you can manage your blood donation activities, view requests, and track your donation history.
-          </p>
-          <p className="text-sm text-gray-500">
-            Logged in as: <span className="font-medium">{user.email}</span>
-          </p>
-        </div>
-      </main>
+      {/* MAIN CONTENT AREA */}
+      <div className="flex-1 flex flex-col">
+        {/* NAVBAR */}
+        <Navbar activeTab={activeTab} setActiveTab={setActiveTab} user={user} />
+
+        {/* PAGE CONTENT */}
+        <main className="flex-1 p-6 overflow-y-auto">
+          {activeTab === "overview" && <Overview user={user} />}
+          {activeTab === "nearby-hospitals" && <NearbyHospitals />}
+          {activeTab === "my-registrations" && <MyRegistrations setActiveTab={setActiveTab} />}
+          {activeTab === "register" && <RegistrationForm onBack={() => setActiveTab('my-registrations')} />}
+          {activeTab === "profile" && <ProfileSettings user={user} />}
+          {activeTab === "my-account" && <MyAccount user={user} />}
+        </main>
+      </div>
     </div>
   );
 }

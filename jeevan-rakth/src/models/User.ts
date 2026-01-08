@@ -29,7 +29,7 @@ const UserSchema: Schema = new Schema(
       type: String,
       trim: true,
       unique: true,
-      sparse: true, // Allows multiple null values but ensures unique non-null values
+      sparse: true,
     },
     password: {
       type: String,
