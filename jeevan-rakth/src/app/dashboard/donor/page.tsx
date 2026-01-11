@@ -21,6 +21,19 @@ export default function DonorDashboard() {
     return 'overview';
   });
 
+  // Reset to overview if user just logged in (no previous session)
+  useEffect(() => {
+    if (user && typeof window !== 'undefined') {
+      const hasSession = sessionStorage.getItem('dashboardVisited');
+      if (!hasSession) {
+        // First visit in this session - reset to overview
+        setActiveTab('overview');
+        localStorage.setItem('donorActiveTab', 'overview');
+        sessionStorage.setItem('dashboardVisited', 'true');
+      }
+    }
+  }, [user]);
+
   // Save active tab to localStorage when it changes
   useEffect(() => {
     if (typeof window !== 'undefined') {

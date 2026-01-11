@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import PersonalDetails from "./PersonalDetails";
 import BloodHealthInfo from "./BloodHealthInfo";
 import LocationAvailability from "./LocationAvailability";
@@ -15,7 +15,45 @@ export default function RegistrationForm({ onBack }: RegistrationFormProps) {
   const [formData, setFormData] = useState<any>({});
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
+  const [fetchingProfile, setFetchingProfile] = useState(true);
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
+
+  // Fetch user profile data on mount to pre-populate form
+  useEffect(() => {
+    const fetchProfileData = async () => {
+      try {
+        const response = await fetch('/api/user/profile', {
+          cache: 'no-store',
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          const user = data.user;
+          
+          // Pre-populate form with existing profile data
+          setFormData({
+            fullName: user.name || '',
+            dateOfBirth: user.dateOfBirth || '',
+            gender: user.gender || '',
+            mobileNumber: user.phone || '',
+            bloodGroup: user.bloodGroup || '',
+            weight: user.weight || '',
+            // Address from ContactDetails
+            state: user.address?.state || '',
+            district: user.address?.district || '',
+            city: user.address?.city || '',
+            pincode: user.address?.pincode || '',
+          });
+        }
+      } catch (error) {
+        console.error('Failed to fetch profile:', error);
+      } finally {
+        setFetchingProfile(false);
+      }
+    };
+
+    fetchProfileData();
+  }, []);
 
   const steps = [
     { id: 1, title: "Personal Details", icon: "M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" },
@@ -59,6 +97,8 @@ export default function RegistrationForm({ onBack }: RegistrationFormProps) {
       }
       if (!formData.weight) newErrors.weight = "Weight is required";
       else if (formData.weight < 50) newErrors.weight = "Minimum weight requirement is 50 kg";
+      if (!formData.currentMedication) newErrors.currentMedication = "Please select an option";
+      if (!formData.majorIllness) newErrors.majorIllness = "Please select an option";
     }
 
     if (step === 3) {
@@ -99,12 +139,26 @@ export default function RegistrationForm({ onBack }: RegistrationFormProps) {
 
     setLoading(true);
     try {
-      // TODO: Replace with actual API call
-      await new Promise((resolve) => setTimeout(resolve, 2000));
-      console.log("Form Data:", formData);
-      // TODO: Save to API and refresh registrations list
-      setToast({ message: 'Registration submitted successfully!', type: 'success' });
-      setTimeout(() => onBack(), 1500);
+      const response = await fetch('/api/donor/registration', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setToast({ message: 'Registration submitted successfully!', type: 'success' });
+        setTimeout(() => {
+          onBack(); // This will navigate back to my-registrations tab
+          // Trigger a page reload to refresh the registrations list
+          window.location.reload();
+        }, 1500);
+      } else {
+        setToast({ message: data.error || 'Failed to submit registration', type: 'error' });
+      }
     } catch (error) {
       console.error("Submission error:", error);
       setToast({ message: 'Failed to submit registration. Please try again.', type: 'error' });
@@ -130,6 +184,13 @@ export default function RegistrationForm({ onBack }: RegistrationFormProps) {
         </div>
       </div>
 
+      {fetchingProfile ? (
+        <div className="p-12 flex flex-col items-center justify-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600 mb-4"></div>
+          <p className="text-gray-600 font-medium">Loading your profile data...</p>
+        </div>
+      ) : (
+        <>
         {/* Stepper */}
         <div className="px-6 py-5 bg-gradient-to-r from-gray-50 to-red-50 border-b border-red-100">
           <div className="flex items-center justify-between">
@@ -234,6 +295,8 @@ export default function RegistrationForm({ onBack }: RegistrationFormProps) {
           type={toast.type}
           onClose={() => setToast(null)}
         />
+      )}
+      </>
       )}
     </div>
   );

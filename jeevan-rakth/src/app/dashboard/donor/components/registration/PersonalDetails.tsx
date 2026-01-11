@@ -8,6 +8,8 @@ interface PersonalDetailsProps {
 }
 
 export default function PersonalDetails({ formData, updateFormData, errors }: PersonalDetailsProps) {
+  const [showClearConfirm, setShowClearConfirm] = useState(false);
+  
   const calculateAge = (dob: string) => {
     if (!dob) return 0;
     const birthDate = new Date(dob);
@@ -22,21 +24,81 @@ export default function PersonalDetails({ formData, updateFormData, errors }: Pe
 
   const age = calculateAge(formData.dateOfBirth);
 
+  // Check if any pre-filled data exists
+  const hasPrefilledData = formData.fullName || formData.dateOfBirth || formData.gender || formData.mobileNumber;
+
+  const handleClearPrefilledData = () => {
+    updateFormData('fullName', '');
+    updateFormData('dateOfBirth', '');
+    updateFormData('gender', '');
+    updateFormData('mobileNumber', '');
+    setShowClearConfirm(false);
+  };
+
   return (
     <div className="space-y-6">
       <div className="bg-gradient-to-r from-red-50 to-pink-50 rounded-xl p-4 border border-red-100">
-        <div className="flex items-center gap-3 mb-2">
-          <div className="w-10 h-10 bg-red-600 rounded-lg flex items-center justify-center">
-            <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 20 20">
-              <path d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" />
-            </svg>
+        <div className="flex items-center justify-between gap-3 mb-2">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-red-600 rounded-lg flex items-center justify-center">
+              <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 20 20">
+                <path d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" />
+              </svg>
+            </div>
+            <div>
+              <h3 className="text-xl font-bold text-gray-900">Personal Details</h3>
+              <p className="text-sm text-gray-600">Please provide your basic information</p>
+            </div>
           </div>
-          <div>
-            <h3 className="text-xl font-bold text-gray-900">Personal Details</h3>
-            <p className="text-sm text-gray-600">Please provide your basic information</p>
-          </div>
+          {hasPrefilledData && (
+            <button
+              onClick={() => setShowClearConfirm(true)}
+              className="px-3 py-1.5 text-xs font-semibold text-red-600 bg-white border-2 border-red-600 rounded-lg hover:bg-red-600 hover:text-white transition-all"
+            >
+              Clear Pre-filled
+            </button>
+          )}
         </div>
       </div>
+
+      {/* Info Banner for Pre-filled Data */}
+      {hasPrefilledData && (
+        <div className="bg-blue-50 border-l-4 border-blue-500 p-4 rounded-r-lg">
+          <div className="flex items-start gap-3">
+            <svg className="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+            </svg>
+            <div>
+              <p className="text-sm font-semibold text-blue-900">Information Pre-filled from Your Profile</p>
+              <p className="text-xs text-blue-700 mt-1">We've filled in some details from your account. You can review and update them as needed, or click "Clear Pre-filled" to start fresh.</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Clear Confirmation Modal */}
+      {showClearConfirm && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl p-6 max-w-md mx-4">
+            <h3 className="text-lg font-bold text-gray-900 mb-2">Clear Pre-filled Data?</h3>
+            <p className="text-sm text-gray-600 mb-6">This will remove all pre-filled information from this form. You'll need to enter all details manually.</p>
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={() => setShowClearConfirm(false)}
+                className="px-4 py-2 text-sm font-semibold text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleClearPrefilledData}
+                className="px-4 py-2 text-sm font-semibold text-white bg-red-600 rounded-lg hover:bg-red-700 transition"
+              >
+                Clear Data
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Full Name */}
       <div>
