@@ -1,13 +1,38 @@
 "use client";
-import { useRouter } from "next/navigation";
-import Link from "next/link";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
-
+import Sidebar from "./components/Sidebar";
+import Navbar from "./components/Navbar";
+import Overview from "./components/Overview";
+import BloodInventory from "./components/BloodInventory";
+import DonorManagement from "./components/DonorManagement";import EmergencyRequests from './components/EmergencyRequests';
 export default function HospitalDashboard() {
-  const router = useRouter();
   const { user, loading } = useAuth({ requiredRole: 'hospital' });
+  
+  const [activeTab, setActiveTab] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('hospitalActiveTab') || 'overview';
+    }
+    return 'overview';
+  });
 
-  // Show loading state while checking authentication
+  useEffect(() => {
+    if (user && typeof window !== 'undefined') {
+      const hasSession = sessionStorage.getItem('dashboardVisited');
+      if (!hasSession) {
+        setActiveTab('overview');
+        localStorage.setItem('hospitalActiveTab', 'overview');
+        sessionStorage.setItem('dashboardVisited', 'true');
+      }
+    }
+  }, [user]);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('hospitalActiveTab', activeTab);
+    }
+  }, [activeTab]);
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -19,47 +44,36 @@ export default function HospitalDashboard() {
     );
   }
 
-  // If no user, the useAuth hook will redirect automatically
   if (!user) {
     return null;
   }
 
-  const handleLogout = async () => {
-    try {
-      await fetch('/api/auth/logout', { method: 'POST' });
-      router.push('/login');
-    } catch (error) {
-      console.error('Logout failed:', error);
-    }
-  };
-
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white shadow">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
-          <h1 className="text-2xl font-bold text-gray-900">Hospital Dashboard</h1>
-          <button
-            onClick={handleLogout}
-            className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition cursor-pointer"
-          >
-            Logout
-          </button>
-        </div>
-      </header>
+    <div className="min-h-screen bg-gray-50 flex">
+      <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} user={user} />
 
-      {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="bg-white rounded-lg shadow p-6">
-          <h2 className="text-xl font-semibold text-gray-900 mb-4">Welcome, {user.name}!</h2>
-          <p className="text-gray-600 mb-2">
-            This is your hospital dashboard. Here you can manage blood inventory, create requests, and track available donors.
-          </p>
-          <p className="text-sm text-gray-500">
-            Logged in as: <span className="font-medium">{user.email}</span>
-          </p>
-        </div>
-      </main>
+      <div className="flex-1 flex flex-col ml-64 max-w-full overflow-x-hidden">
+        <Navbar activeTab={activeTab} user={user} />
+
+        <main className="flex-1 overflow-y-auto overflow-x-hidden max-w-full">
+          {activeTab === "overview" && <Overview user={user} />}
+          {activeTab === "blood-inventory" && <BloodInventory user={user} />}
+          {activeTab === "donor-management" && <DonorManagement user={user} />}
+          {activeTab === "emergency-requests" && <EmergencyRequests user={user} />}
+          {activeTab === "nearby-centers" && (
+            <div className="p-6">
+              <h1 className="text-2xl font-bold text-gray-900">Nearby Centers</h1>
+              <p className="text-gray-600 mt-2">View and connect with nearby blood centers</p>
+            </div>
+          )}
+          {activeTab === "settings" && (
+            <div className="p-6">
+              <h1 className="text-2xl font-bold text-gray-900">Settings</h1>
+              <p className="text-gray-600 mt-2">Configure your hospital dashboard preferences</p>
+            </div>
+          )}
+        </main>
+      </div>
     </div>
   );
 }

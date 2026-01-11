@@ -152,7 +152,7 @@ export default function LocationAvailability({ formData, updateFormData, errors 
           Preferred Contact Method <span className="text-red-600">*</span>
         </label>
         <div className="flex gap-4">
-          {['Call', 'WhatsApp', 'Email'].map((method) => (
+          {['Phone', 'SMS', 'WhatsApp', 'Email'].map((method) => (
             <label key={method} className="flex items-center gap-2 cursor-pointer">
               <input
                 type="radio"

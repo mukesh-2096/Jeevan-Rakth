@@ -28,6 +28,11 @@ export default function Navbar({ activeTab, setActiveTab, user }: NavbarProps) {
 
   const handleLogout = async () => {
     try {
+      // Clear localStorage and sessionStorage before logout
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('donorActiveTab');
+        sessionStorage.removeItem('dashboardVisited');
+      }
       await fetch('/api/auth/logout', { method: 'POST' });
       router.push('/login');
     } catch (error) {
