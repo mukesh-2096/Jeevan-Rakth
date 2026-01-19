@@ -1,18 +1,15 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUser } from '@/lib/auth';
 import dbConnect from '@/lib/mongodb';
 import Registration from '@/models/Registration';
 import User from '@/models/User';
 import Notification from '@/models/Notification';
 
-interface RouteParams {
-  params: {
-    id: string;
-  };
-}
-
 // PATCH - Approve or reject a registration
-export async function PATCH(request: Request, { params }: RouteParams) {
+export async function PATCH(
+  request: NextRequest,
+  context: { params: Promise<{ id: string }> }
+) {
   try {
     const currentUser = await getCurrentUser();
     
@@ -26,6 +23,7 @@ export async function PATCH(request: Request, { params }: RouteParams) {
 
     await dbConnect();
 
+    const params = await context.params;
     const { id } = params;
     const { action } = await request.json();
 
@@ -79,7 +77,10 @@ export async function PATCH(request: Request, { params }: RouteParams) {
 }
 
 // DELETE - Mark as donated
-export async function DELETE(request: Request, { params }: RouteParams) {
+export async function DELETE(
+  request: NextRequest,
+  context: { params: Promise<{ id: string }> }
+) {
   try {
     const currentUser = await getCurrentUser();
     
@@ -93,6 +94,7 @@ export async function DELETE(request: Request, { params }: RouteParams) {
 
     await dbConnect();
 
+    const params = await context.params;
     const { id } = params;
 
     const registration = await Registration.findById(id);

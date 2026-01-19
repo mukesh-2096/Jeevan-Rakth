@@ -48,21 +48,45 @@ Jeevan-Rakth addresses these critical challenges by providing:
 
 ## 🚀 Technology Stack
 
-- **Frontend**: Next.js 16, React 19, TypeScript
+### **Frontend**
+- **Framework**: Next.js 16.1.1 with Turbopack
+- **UI Library**: React 19
+- **Language**: TypeScript
 - **Styling**: Tailwind CSS v4
-- **UI Components**: Custom components with modern design
 - **Fonts**: Playfair Display, Geist Sans
 
+### **Backend**
+- **Runtime**: Node.js
+- **API Routes**: Next.js App Router API Routes
+- **Authentication**: JWT (JSON Web Tokens) with HTTP-only cookies
+- **Password Security**: bcryptjs for hashing
+
+### **Database**
+- **Database**: MongoDB
+- **ODM**: Mongoose (Schema modeling, validation, relationships)
+- **Collections**:
+  - Users (donors, hospitals, NGOs)
+  - Blood Camps
+  - Camp Registrations (campdetails)
+  - Donor Registrations
+  - Contact Details
+
+### **Key Features & Libraries**
+- **Geolocation**: Real-time location-based donor and hospital matching
+- **State Management**: React hooks (useState, useEffect)
+- **Form Validation**: Client-side and server-side validation
+- **Toast Notifications**: Custom toast component for user feedback
+- **Responsive Design**: Mobile-first approach with Tailwind CSS
+- **Type Safety**: Full TypeScript integration across frontend and backend
+
+### **Development Tools**
+- **Package Manager**: npm
+- **Code Quality**: ESLint
+- **Version Control**: Git
+- **Deployment Ready**: Optimized production builds with Next.js
+
 ---
 
-## 📊 Current Reach
-
-- ✅ **50,000+** Active Donors
-- ✅ **10,000+** Lives Saved
-- ✅ **200+** Partner Hospitals
-- ✅ **24/7** Emergency Support
-
----
 
 ## 🎨 Design Philosophy
 
@@ -80,11 +104,6 @@ Whether you're a **donor**, **hospital**, or **NGO**, you can join our mission t
 
 **Join us in saving lives, one drop at a time.**
 
----
-
-## 📝 License
-
-This project is part of the WSI Next.js initiative.
 
 ---
 

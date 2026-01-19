@@ -16,6 +16,9 @@ interface BloodCamp {
   endTime: string;
   targetDonors: number;
   currentDonors: number;
+  donatedDonors?: number;
+  registeredDonors?: number;
+  acceptedDonors?: number;
   volunteers: number;
   status: 'upcoming' | 'ongoing' | 'completed' | 'cancelled';
   facilities?: string[];
@@ -162,15 +165,28 @@ export default function BloodDrives() {
     setFormData({
       name: camp.name,
       description: camp.description || '',
-      location: camp.location,
+      location: {
+        address: camp.location.address,
+        city: camp.location.city,
+        state: camp.location.state,
+        pincode: camp.location.pincode || '',
+      },
       date: camp.date.split('T')[0],
       startTime: camp.startTime,
       endTime: camp.endTime,
       targetDonors: camp.targetDonors,
       volunteers: camp.volunteers,
       facilities: camp.facilities || [],
-      contactPerson: camp.contactPerson,
-      requirements: camp.requirements || { bloodGroup: [], minimumAge: 18, specialInstructions: '' },
+      contactPerson: {
+        name: camp.contactPerson.name,
+        phone: camp.contactPerson.phone,
+        email: camp.contactPerson.email || '',
+      },
+      requirements: {
+        bloodGroup: camp.requirements?.bloodGroup || [],
+        minimumAge: camp.requirements?.minimumAge || 18,
+        specialInstructions: camp.requirements?.specialInstructions || '',
+      },
     });
     setShowEditForm(true);
   };
@@ -279,7 +295,7 @@ export default function BloodDrives() {
     <div className="space-y-6">
       {/* Success/Error Toast */}
       {message && (
-        <div className={`fixed top-4 right-4 z-50 min-w-[320px] max-w-md shadow-xl rounded-lg overflow-hidden transform transition-all duration-300 ${
+        <div className={`fixed top-4 right-4 z-[60] min-w-[320px] max-w-md shadow-xl rounded-lg overflow-hidden transform transition-all duration-300 ${
           message.type === 'success' 
             ? 'bg-white border-l-4 border-green-500' 
             : 'bg-white border-l-4 border-red-500'
@@ -383,6 +399,30 @@ export default function BloodDrives() {
               </div>
               
               <form onSubmit={handleSubmit} className="p-8 space-y-6">
+              {/* Error Message inside form */}
+              {message && message.type === 'error' && (
+                <div className="bg-red-50 border-l-4 border-red-500 p-4 rounded-lg">
+                  <div className="flex items-start gap-3">
+                    <svg className="w-5 h-5 text-red-600 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <div className="flex-1">
+                      <h4 className="text-sm font-semibold text-red-900">Error</h4>
+                      <p className="text-sm text-red-700 mt-1">{message.text}</p>
+                    </div>
+                    <button 
+                      type="button"
+                      onClick={() => setMessage(null)} 
+                      className="flex-shrink-0 text-red-400 hover:text-red-600"
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+              )}
+              
               {/* Basic Information */}
               <div className="space-y-4">
                 <h4 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
@@ -795,18 +835,22 @@ export default function BloodDrives() {
                 </div>
 
                 {/* Stats Grid */}
-                <div className="grid grid-cols-3 gap-4 py-3 border-t border-b border-gray-100">
+                <div className="grid grid-cols-4 gap-3 py-3 border-t border-b border-gray-100">
                   <div className="text-center">
-                    <div className="text-2xl font-bold text-gray-900">{camp.volunteers}</div>
+                    <div className="text-xl font-bold text-gray-900">{camp.volunteers}</div>
                     <div className="text-xs text-gray-600">Volunteers</div>
                   </div>
-                  <div className="text-center border-l border-r border-gray-100">
-                    <div className="text-2xl font-bold text-gray-900">{camp.facilities?.length || 0}</div>
-                    <div className="text-xs text-gray-600">Facilities</div>
+                  <div className="text-center border-l border-gray-100">
+                    <div className="text-xl font-bold text-green-600">{camp.donatedDonors || 0}</div>
+                    <div className="text-xs text-gray-600">Donated</div>
                   </div>
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-gray-900">{camp.requirements?.bloodGroup?.length || 0}</div>
-                    <div className="text-xs text-gray-600">Blood Types</div>
+                  <div className="text-center border-l border-gray-100">
+                    <div className="text-xl font-bold text-yellow-600">{camp.acceptedDonors || 0}</div>
+                    <div className="text-xs text-gray-600">Accepted</div>
+                  </div>
+                  <div className="text-center border-l border-gray-100">
+                    <div className="text-xl font-bold text-blue-600">{camp.registeredDonors || 0}</div>
+                    <div className="text-xs text-gray-600">Registered</div>
                   </div>
                 </div>
 

@@ -7,7 +7,7 @@ import mongoose from 'mongoose';
 // GET /api/ngo/camps/[id] - Get a specific blood camp
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
     await dbConnect();
@@ -27,6 +27,7 @@ export async function GET(
       );
     }
 
+    const params = await context.params;
     const { id } = params;
 
     if (!mongoose.Types.ObjectId.isValid(id)) {
@@ -64,7 +65,7 @@ export async function GET(
 // PATCH /api/ngo/camps/[id] - Update a blood camp
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
     await dbConnect();
@@ -84,6 +85,7 @@ export async function PATCH(
       );
     }
 
+    const params = await context.params;
     const { id } = params;
 
     if (!mongoose.Types.ObjectId.isValid(id)) {
@@ -159,7 +161,7 @@ export async function PATCH(
 // DELETE /api/ngo/camps/[id] - Delete a blood camp
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
     await dbConnect();
@@ -179,6 +181,7 @@ export async function DELETE(
       );
     }
 
+    const params = await context.params;
     const { id } = params;
 
     if (!mongoose.Types.ObjectId.isValid(id)) {
@@ -198,6 +201,17 @@ export async function DELETE(
         { error: 'Blood camp not found' },
         { status: 404 }
       );
+    }
+
+    // Delete all donor registrations associated with this camp
+    const db = mongoose.connection.db;
+    const campDetailsCollection = db?.collection('campdetails');
+    
+    if (campDetailsCollection) {
+      const deleteResult = await campDetailsCollection.deleteMany({
+        campId: new mongoose.Types.ObjectId(id)
+      });
+      console.log(`Deleted ${deleteResult.deletedCount} donor registrations for camp ${id}`);
     }
 
     return NextResponse.json({

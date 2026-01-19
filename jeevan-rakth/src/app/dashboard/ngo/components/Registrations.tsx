@@ -200,7 +200,7 @@ export default function Registrations() {
                 preferredDays: [],
                 preferredTimeSlots: [],
               },
-              status: 'pending',
+              status: 'registered',
             }),
           });
 

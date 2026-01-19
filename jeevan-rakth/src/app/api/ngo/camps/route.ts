@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/mongodb';
 import BloodCamp from '@/models/BloodCamp';
 import { getCurrentUser } from '@/lib/auth';
+import mongoose from 'mongoose';
 
 // GET /api/ngo/camps - Get all blood camps for the logged-in NGO
 export async function GET(request: NextRequest) {
@@ -43,6 +44,56 @@ export async function GET(request: NextRequest) {
       .lean();
 
     const total = await BloodCamp.countDocuments(query);
+
+    // Get donor statistics from campdetails collection for each camp
+    const db = mongoose.connection.db;
+    const campDetailsCollection = db?.collection('campdetails');
+
+    if (campDetailsCollection) {
+      const campsWithStats = await Promise.all(camps.map(async (camp) => {
+        const campId = new mongoose.Types.ObjectId(camp._id.toString());
+        
+        // Count total registered donors for this camp
+        const totalDonors = await campDetailsCollection.countDocuments({ campId });
+        
+        // Count donors who have donated
+        const donatedCount = await campDetailsCollection.countDocuments({ 
+          campId,
+          status: 'donated'
+        });
+
+        // Count registered donors
+        const registeredCount = await campDetailsCollection.countDocuments({ 
+          campId,
+          status: 'registered'
+        });
+
+        // Count accepted donors
+        const acceptedCount = await campDetailsCollection.countDocuments({ 
+          campId,
+          status: 'accepted'
+        });
+
+        return {
+          ...camp,
+          currentDonors: totalDonors,
+          donatedDonors: donatedCount,
+          registeredDonors: registeredCount,
+          acceptedDonors: acceptedCount,
+        };
+      }));
+
+      return NextResponse.json({
+        success: true,
+        camps: campsWithStats,
+        pagination: {
+          total,
+          limit,
+          skip,
+          hasMore: skip + camps.length < total,
+        },
+      });
+    }
 
     return NextResponse.json({
       success: true,

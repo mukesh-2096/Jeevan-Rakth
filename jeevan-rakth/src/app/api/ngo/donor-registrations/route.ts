@@ -14,6 +14,7 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url);
     const status = searchParams.get('status');
+    const campId = searchParams.get('campId');
 
     const db = mongoose.connection.db;
     const campDetailsCollection = db?.collection('campdetails');
@@ -30,12 +31,16 @@ export async function GET(request: NextRequest) {
       query.status = status;
     }
 
+    if (campId) {
+      query.campId = new mongoose.Types.ObjectId(campId);
+    }
+
     const donors = await campDetailsCollection
       .find(query)
       .sort({ createdAt: -1 })
       .toArray();
 
-    return NextResponse.json({ donors }, { status: 200 });
+    return NextResponse.json({ donors, registrations: donors }, { status: 200 });
 
   } catch (error) {
     console.error('Get donor registrations error:', error);
