@@ -113,7 +113,7 @@ export default function MyRegistrations({ setActiveTab }: MyRegistrationsProps) 
                   </div>
                   <span className={`px-3 py-1 rounded-full text-xs font-semibold uppercase ${
                     reg.status === 'active' ? 'bg-green-100 text-green-800' :
-                    reg.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                    reg.status === 'registered' ? 'bg-yellow-100 text-yellow-800' :
                     'bg-gray-100 text-gray-800'
                   }`}>
                     {reg.status}

@@ -159,7 +159,7 @@ BloodCampSchema.index({ ngoId: 1, status: 1, date: -1 });
 BloodCampSchema.index({ status: 1, date: 1 });
 
 // Virtual for progress percentage
-BloodCampSchema.virtual('progress').get(function() {
+BloodCampSchema.virtual('progress').get(function(this: IBloodCamp) {
   return this.targetDonors > 0 ? Math.round((this.currentDonors / this.targetDonors) * 100) : 0;
 });
 

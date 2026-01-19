@@ -7,6 +7,7 @@ import Overview from "./components/Overview";
 import DonorManagement from "./components/DonorManagement";
 import BloodDrives from "./components/BloodDrives";
 import Registrations from "./components/Registrations";
+import CampManagement from "./components/CampManagement";
 import ProfileSettings from "./components/ProfileSettings";
 
 export default function NGODashboard() {
@@ -57,6 +58,7 @@ export default function NGODashboard() {
           )}
           {activeTab === 'blood-drives' && <BloodDrives />}
           {activeTab === 'registrations' && <Registrations />}
+          {activeTab === 'camp-management' && <CampManagement />}
           {activeTab === 'settings' && <ProfileSettings />}
         </main>
       </div>
