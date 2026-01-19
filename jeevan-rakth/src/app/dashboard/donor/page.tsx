@@ -4,7 +4,6 @@ import { useAuth } from "@/hooks/useAuth";
 import Sidebar from "./components/Sidebar";
 import Navbar from "./components/Navbar";
 import Overview from "./components/Overview";
-import NearbyHospitals from "./components/NearbyHospitals";
 import MyRegistrations from "./components/MyRegistrations";
 import ProfileSettings from "./components/ProfileSettings";
 import MyAccount from "./components/MyAccount";
@@ -71,7 +70,6 @@ export default function DonorDashboard() {
         {/* PAGE CONTENT */}
         <main className="flex-1 p-6 overflow-y-auto">
           {activeTab === "overview" && <Overview user={user} />}
-          {activeTab === "nearby-hospitals" && <NearbyHospitals />}
           {activeTab === "my-registrations" && <MyRegistrations setActiveTab={setActiveTab} />}
           {activeTab === "register" && <RegistrationForm onBack={() => setActiveTab('my-registrations')} />}
           {activeTab === "profile" && <ProfileSettings user={user} />}

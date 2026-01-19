@@ -412,6 +412,7 @@ export default function SignUp() {
               {/* Google Sign Up Button */}
               <button
                 type="button"
+                onClick={() => router.push('/under-development')}
                 className="w-full py-3.5 border-2 border-gray-300 text-gray-700 rounded-lg font-semibold hover:bg-gray-50 transition flex items-center justify-center gap-3 cursor-pointer"
               >
                 <svg className="w-5 h-5" viewBox="0 0 24 24">

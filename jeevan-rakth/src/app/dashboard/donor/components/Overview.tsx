@@ -9,6 +9,18 @@ interface OverviewProps {
   } | null;
 }
 
+interface Registration {
+  _id: string;
+  campName?: string;
+  campDate?: string;
+  location?: string;
+  status: 'registered' | 'accepted' | 'donated' | 'requested' | 'approved';
+  registeredAt?: string;
+  createdAt?: string;
+  fullName?: string;
+  bloodGroup?: string;
+}
+
 export default function Overview({ user }: OverviewProps) {
   const [profileData, setProfileData] = useState<{
     dateOfBirth: string;
@@ -19,31 +31,78 @@ export default function Overview({ user }: OverviewProps) {
     weight: '',
     bloodGroup: '',
   });
+  const [registrations, setRegistrations] = useState<Registration[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Fetch profile data to calculate eligibility
+  // Fetch profile data and registrations
   useEffect(() => {
-    const fetchProfile = async () => {
+    const fetchData = async () => {
       try {
-        const response = await fetch('/api/user/profile', {
+        // Fetch profile
+        const profileRes = await fetch('/api/user/profile', {
           cache: 'no-store',
         });
-        if (response.ok) {
-          const data = await response.json();
+        if (profileRes.ok) {
+          const data = await profileRes.json();
           setProfileData({
             dateOfBirth: data.user.dateOfBirth || '',
             weight: data.user.weight || '',
             bloodGroup: data.user.bloodGroup || '',
           });
         }
+
+        // Fetch both types of registrations
+        const allRegistrations: Registration[] = [];
+
+        // 1. Fetch camp registrations from campdetails
+        console.log('Fetching camp registrations...');
+        const campRegRes = await fetch('/api/donor/camp-registrations', {
+          cache: 'no-store',
+        });
+        console.log('Camp registration API response status:', campRegRes.status);
+        
+        if (campRegRes.ok) {
+          const data = await campRegRes.json();
+          console.log('Camp registration data received:', data);
+          const campRegs = data.registrations || [];
+          console.log('Camp registrations:', campRegs.length, 'items');
+          allRegistrations.push(...campRegs);
+        }
+
+        // 2. Fetch profile registrations
+        console.log('Fetching profile registrations...');
+        const profileRegRes = await fetch('/api/donor/registration', {
+          cache: 'no-store',
+        });
+        console.log('Profile registration API response status:', profileRegRes.status);
+
+        if (profileRegRes.ok) {
+          const data = await profileRegRes.json();
+          console.log('Profile registration data received:', data);
+          const profileRegs = (data.registrations || []).map((reg: any) => ({
+            _id: reg._id,
+            campName: reg.fullName || 'Blood Donation Registration',
+            campDate: reg.createdAt,
+            location: reg.city ? `${reg.city}, ${reg.state}` : 'Not specified',
+            status: reg.status === 'requested' ? 'registered' : (reg.status === 'approved' ? 'accepted' : reg.status),
+            registeredAt: reg.createdAt,
+            createdAt: reg.createdAt,
+          }));
+          console.log('Profile registrations:', profileRegs.length, 'items');
+          allRegistrations.push(...profileRegs);
+        }
+
+        console.log('Total registrations:', allRegistrations.length);
+        setRegistrations(allRegistrations);
+        
       } catch (error) {
-        console.error('Failed to fetch profile:', error);
+        console.error('Failed to fetch data:', error);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchProfile();
+    fetchData();
   }, []);
 
   // Calculate age from date of birth
@@ -87,6 +146,68 @@ export default function Overview({ user }: OverviewProps) {
 
   const eligibility = calculateEligibility();
 
+  // Calculate statistics from registrations
+  const totalDonations = registrations.filter(r => r.status === 'donated').length;
+  // Count upcoming donations: all accepted/approved registrations
+  const upcomingDonations = registrations.filter(r => r.status === 'accepted').length;
+
+  // Get recent activity (last 5 registrations)
+  const recentActivity = [...registrations]
+    .sort((a, b) => new Date(b.registeredAt).getTime() - new Date(a.registeredAt).getTime())
+    .slice(0, 5);
+
+  // Format date
+  const formatDate = (dateString: string | undefined) => {
+    if (!dateString) return 'Not available';
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) return 'Invalid date';
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  };
+
+  // Get status color
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'donated':
+        return 'text-green-600 bg-green-100';
+      case 'accepted':
+      case 'approved':
+        return 'text-yellow-600 bg-yellow-100';
+      case 'registered':
+      case 'requested':
+        return 'text-blue-600 bg-blue-100';
+      default:
+        return 'text-gray-600 bg-gray-100';
+    }
+  };
+
+  // Get status icon
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case 'donated':
+        return (
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+        );
+      case 'accepted':
+      case 'approved':
+        return (
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+        );
+      case 'registered':
+      case 'requested':
+        return (
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+          </svg>
+        );
+      default:
+        return null;
+    }
+  };
+
   return (
     <div>
       <div className="mb-6">
@@ -105,8 +226,8 @@ export default function Overview({ user }: OverviewProps) {
               </svg>
             </div>
           </div>
-          <p className="text-3xl font-bold text-gray-900">0</p>
-          <p className="text-sm text-gray-500 mt-1">Lives saved: 0</p>
+          <p className="text-3xl font-bold text-gray-900">{totalDonations}</p>
+          <p className="text-sm text-gray-500 mt-1">Lives saved: {totalDonations * 3}</p>
         </div>
 
         <div className="bg-white rounded-lg shadow p-6">
@@ -118,8 +239,8 @@ export default function Overview({ user }: OverviewProps) {
               </svg>
             </div>
           </div>
-          <p className="text-3xl font-bold text-gray-900">0</p>
-          <p className="text-sm text-gray-500 mt-1">No scheduled donations</p>
+          <p className="text-3xl font-bold text-gray-900">{upcomingDonations}</p>
+          <p className="text-sm text-gray-500 mt-1">{upcomingDonations === 0 ? 'No scheduled donations' : `${upcomingDonations} upcoming`}</p>
         </div>
 
         <div className="bg-white rounded-lg shadow p-6">
@@ -167,12 +288,72 @@ export default function Overview({ user }: OverviewProps) {
       {/* Recent Activity */}
       <div className="bg-white rounded-lg shadow p-6">
         <h4 className="text-lg font-semibold text-gray-900 mb-4">Recent Activity</h4>
-        <div className="text-center py-8">
-          <svg className="w-16 h-16 text-gray-300 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-          </svg>
-          <p className="text-gray-500">No recent activity</p>
-        </div>
+        {loading ? (
+          <div className="text-center py-8">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-600 mx-auto mb-3"></div>
+            <p className="text-gray-500 text-sm">Loading activity...</p>
+          </div>
+        ) : recentActivity.length === 0 ? (
+          <div className="text-center py-8">
+            <svg className="w-16 h-16 text-gray-300 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+            <p className="text-gray-500">No recent activity</p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {recentActivity.map((activity) => (
+              <div key={activity._id} className="flex items-center gap-4 p-4 bg-gray-50 border border-gray-200 rounded-lg hover:shadow-md transition">
+                {/* Status Icon */}
+                <div className={`flex-shrink-0 w-12 h-12 rounded-full flex items-center justify-center ${getStatusColor(activity.status)}`}>
+                  {getStatusIcon(activity.status)}
+                </div>
+                
+                {/* Content */}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex-1 min-w-0">
+                      <h5 className="font-semibold text-gray-900 text-base mb-1">{activity.campName || 'Registration'}</h5>
+                      <div className="flex items-center gap-2 text-sm text-gray-600 mb-2">
+                        <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                        </svg>
+                        <span className="truncate">{activity.location || 'Location not specified'}</span>
+                      </div>
+                      <div className="flex flex-wrap items-center gap-3 text-xs text-gray-500">
+                        {activity.campDate && (
+                          <>
+                            <div className="flex items-center gap-1">
+                              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                              </svg>
+                              <span>Camp: {formatDate(activity.campDate)}</span>
+                            </div>
+                            <span className="text-gray-300">•</span>
+                          </>
+                        )}
+                        <div className="flex items-center gap-1">
+                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                          <span>Registered: {formatDate(activity.registeredAt || activity.createdAt)}</span>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {/* Status Badge */}
+                    <div className="flex-shrink-0">
+                      <span className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-semibold capitalize ${getStatusColor(activity.status)}`}>
+                        {activity.status}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
