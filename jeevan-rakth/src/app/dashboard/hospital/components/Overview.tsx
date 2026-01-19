@@ -19,6 +19,29 @@ type DonorStats = {
   donatedToday: number;
 };
 
+type RecentRequest = {
+  id: string;
+  name: string;
+  bloodType: string;
+  location: string;
+  submittedAt: string;
+};
+
+type UpcomingDonation = {
+  id: string;
+  name: string;
+  bloodType: string;
+  location: string;
+  status: string;
+};
+
+type BloodInventoryItem = {
+  bloodType: string;
+  units: number;
+  status: string;
+  availableDonors: number;
+};
+
 export default function Overview({ user, refreshTrigger = 0 }: OverviewProps) {
   const [stats, setStats] = useState<DonorStats>({
     totalDonors: 0,
@@ -28,6 +51,9 @@ export default function Overview({ user, refreshTrigger = 0 }: OverviewProps) {
     approvedToday: 0,
     donatedToday: 0,
   });
+  const [recentRequests, setRecentRequests] = useState<RecentRequest[]>([]);
+  const [upcomingDonations, setUpcomingDonations] = useState<UpcomingDonation[]>([]);
+  const [bloodInventory, setBloodInventory] = useState<BloodInventoryItem[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Fetch dashboard stats
@@ -49,25 +75,82 @@ export default function Overview({ user, refreshTrigger = 0 }: OverviewProps) {
     }
   };
 
+  // Fetch recent requests (pending registrations)
+  const fetchRecentRequests = async () => {
+    try {
+      const response = await fetch('/api/hospital/registrations', {
+        credentials: 'include',
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        // Get the 5 most recent pending requests
+        setRecentRequests(data.pendingRegistrations.slice(0, 5));
+      }
+    } catch (error) {
+      console.error('Error fetching recent requests:', error);
+    }
+  };
+
+  // Fetch upcoming donations (accepted donors)
+  const fetchUpcomingDonations = async () => {
+    try {
+      const response = await fetch('/api/hospital/donors', {
+        credentials: 'include',
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        // Filter for accepted status and get first 5
+        const accepted = data.donors?.filter((d: any) => d.status === 'accepted').slice(0, 5) || [];
+        setUpcomingDonations(accepted.map((d: any) => ({
+          id: d.id,
+          name: d.name,
+          bloodType: d.bloodType,
+          location: d.location,
+          status: d.status
+        })));
+      }
+    } catch (error) {
+      console.error('Error fetching upcoming donations:', error);
+    }
+  };
+
+  // Fetch blood inventory
+  const fetchBloodInventory = async () => {
+    try {
+      const response = await fetch('/api/hospital/blood-inventory', {
+        credentials: 'include',
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        setBloodInventory(data.inventory || []);
+      }
+    } catch (error) {
+      console.error('Error fetching blood inventory:', error);
+    }
+  };
+
   useEffect(() => {
     if (user) {
       fetchStats();
+      fetchRecentRequests();
+      fetchUpcomingDonations();
+      fetchBloodInventory();
     }
   }, [user, refreshTrigger]);
-  const bloodInventory = [
-    { group: 'A+', units: 0, status: 'Critical', percentage: 0, color: 'red' },
-    { group: 'A-', units: 0, status: 'Critical', percentage: 0, color: 'red' },
-    { group: 'B+', units: 0, status: 'Critical', percentage: 0, color: 'red' },
-    { group: 'B-', units: 0, status: 'Critical', percentage: 0, color: 'red' },
-    { group: 'AB+', units: 0, status: 'Critical', percentage: 0, color: 'red' },
-    { group: 'AB-', units: 0, status: 'Critical', percentage: 0, color: 'red' },
-    { group: 'O+', units: 0, status: 'Critical', percentage: 0, color: 'red' },
-    { group: 'O-', units: 0, status: 'Critical', percentage: 0, color: 'red' },
-  ];
+  // Calculate percentage and color for blood inventory display
+  const getInventoryColor = (status: string) => {
+    if (status === 'Good') return 'green';
+    if (status === 'Low') return 'yellow';
+    return 'red';
+  };
 
-  const recentRequests: any[] = [];
-
-  const upcomingDonations: any[] = [];
+  const getInventoryPercentage = (units: number) => {
+    const maxUnits = 100; // Maximum expected units for display
+    return Math.min((units / maxUnits) * 100, 100);
+  };
 
   return (
     <div className="p-6">
@@ -148,30 +231,44 @@ export default function Overview({ user, refreshTrigger = 0 }: OverviewProps) {
             </svg>
           </div>
           <div className="space-y-4">
-            {bloodInventory.map((blood) => (
-              <div key={blood.group}>
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-3">
-                    <span className="text-lg font-bold text-red-600 w-12">{blood.group}</span>
-                    <div>
-                      <span className="text-sm font-semibold text-gray-900">{blood.units} units</span>
-                      <p className="text-xs text-gray-500">{blood.status}</p>
+            {bloodInventory.length === 0 ? (
+              <div className="text-center py-8">
+                <svg className="w-12 h-12 text-gray-300 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                </svg>
+                <p className="text-gray-500 text-sm">No inventory data</p>
+              </div>
+            ) : bloodInventory.map((blood) => {
+              const color = getInventoryColor(blood.status);
+              const percentage = getInventoryPercentage(blood.units);
+              return (
+                <div key={blood.bloodType}>
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-3">
+                      <span className="text-lg font-bold text-red-600 w-12">{blood.bloodType}</span>
+                      <div>
+                        <span className="text-sm font-semibold text-gray-900">{blood.units} units</span>
+                        <p className="text-xs text-gray-500">{blood.status}</p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <span className="text-sm font-medium text-gray-600">{Math.round(percentage)}%</span>
+                      <p className="text-xs text-gray-500">+{blood.availableDonors} donors</p>
                     </div>
                   </div>
-                  <span className="text-sm font-medium text-gray-600">{blood.percentage}%</span>
+                  <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div
+                      className={`h-2 rounded-full transition-all ${
+                        color === 'green' ? 'bg-green-500' :
+                        color === 'yellow' ? 'bg-yellow-500' :
+                        'bg-red-500'
+                      }`}
+                      style={{ width: `${percentage}%` }}
+                    ></div>
+                  </div>
                 </div>
-                <div className="w-full bg-gray-200 rounded-full h-2">
-                  <div
-                    className={`h-2 rounded-full ${
-                      blood.color === 'green' ? 'bg-green-500' :
-                      blood.color === 'yellow' ? 'bg-yellow-500' :
-                      'bg-red-500'
-                    }`}
-                    style={{ width: `${blood.percentage}%` }}
-                  ></div>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
 
@@ -186,26 +283,31 @@ export default function Overview({ user, refreshTrigger = 0 }: OverviewProps) {
               </svg>
             </div>
             <div className="space-y-3">
-              {recentRequests.map((request, idx) => (
+              {recentRequests.length === 0 ? (
+                <div className="text-center py-8">
+                  <svg className="w-12 h-12 text-gray-300 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
+                  </svg>
+                  <p className="text-gray-500 text-sm">No recent requests</p>
+                </div>
+              ) : recentRequests.map((request, idx) => (
                 <div key={idx} className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
-                  <div className="p-2 bg-red-100 rounded-lg">
-                    <svg className="w-5 h-5 text-red-600" fill="currentColor" viewBox="0 0 24 24">
-                      <path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z" />
+                  <div className="p-2 bg-yellow-100 rounded-lg">
+                    <svg className="w-5 h-5 text-yellow-600" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
                     </svg>
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-start justify-between mb-1">
-                      <h3 className="text-sm font-semibold text-gray-900">{request.hospital}</h3>
+                      <h3 className="text-sm font-semibold text-gray-900">{request.name}</h3>
                       <span className={`px-2 py-0.5 rounded text-xs font-medium ${
-                        request.priority === 'Critical' ? 'bg-red-100 text-red-700' :
-                        request.priority === 'High' ? 'bg-yellow-100 text-yellow-700' :
-                        'bg-blue-100 text-blue-700'
+                        'bg-yellow-100 text-yellow-700'
                       }`}>
-                        {request.priority}
+                        Pending
                       </span>
                     </div>
                     <p className="text-sm text-gray-600">
-                      <span className="font-medium text-red-600">{request.bloodGroup}</span> - {request.units} units
+                      <span className="font-medium text-red-600">{request.bloodType}</span>
                     </p>
                     <div className="flex items-center gap-2 mt-1 text-xs text-gray-500">
                       <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -213,7 +315,7 @@ export default function Overview({ user, refreshTrigger = 0 }: OverviewProps) {
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                       </svg>
                       <span>{request.location}</span>
-                      <span className="ml-auto">{request.time}</span>
+                      <span className="ml-auto">{request.submittedAt}</span>
                     </div>
                   </div>
                 </div>
@@ -230,17 +332,29 @@ export default function Overview({ user, refreshTrigger = 0 }: OverviewProps) {
               </svg>
             </div>
             <div className="space-y-3">
-              {upcomingDonations.map((donation, idx) => (
+              {upcomingDonations.length === 0 ? (
+                <div className="text-center py-8">
+                  <svg className="w-12 h-12 text-gray-300 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                  <p className="text-gray-500 text-sm">No upcoming donations</p>
+                </div>
+              ) : upcomingDonations.map((donation, idx) => (
                 <div key={idx} className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
-                  <div className="p-2 bg-blue-100 rounded-lg">
-                    <svg className="w-5 h-5 text-blue-600" fill="currentColor" viewBox="0 0 24 24">
+                  <div className="p-2 bg-green-100 rounded-lg">
+                    <svg className="w-5 h-5 text-green-600" fill="currentColor" viewBox="0 0 24 24">
                       <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
                     </svg>
                   </div>
                   <div className="flex-1 min-w-0">
-                    <h3 className="text-sm font-semibold text-gray-900">{donation.name}</h3>
+                    <div className="flex items-start justify-between mb-1">
+                      <h3 className="text-sm font-semibold text-gray-900">{donation.name}</h3>
+                      <span className="px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-700">
+                        Accepted
+                      </span>
+                    </div>
                     <p className="text-sm text-gray-600">
-                      <span className="font-medium text-red-600">{donation.bloodGroup}</span> • {donation.time}
+                      <span className="font-medium text-red-600">{donation.bloodType}</span>
                     </p>
                     <div className="flex items-center gap-1 mt-1 text-xs text-gray-500">
                       <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">

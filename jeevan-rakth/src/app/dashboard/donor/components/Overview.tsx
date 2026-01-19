@@ -153,7 +153,7 @@ export default function Overview({ user }: OverviewProps) {
 
   // Get recent activity (last 5 registrations)
   const recentActivity = [...registrations]
-    .sort((a, b) => new Date(b.registeredAt).getTime() - new Date(a.registeredAt).getTime())
+    .sort((a, b) => new Date(b.registeredAt || 0).getTime() - new Date(a.registeredAt || 0).getTime())
     .slice(0, 5);
 
   // Format date
