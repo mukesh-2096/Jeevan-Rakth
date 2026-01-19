@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUser } from '@/lib/auth';
 import dbConnect from '@/lib/mongodb';
 import Registration from '@/models/Registration';
+import mongoose from 'mongoose';
 
 export async function POST(request: NextRequest) {
   try {
@@ -14,6 +15,44 @@ export async function POST(request: NextRequest) {
     await dbConnect();
 
     const data = await request.json();
+
+    // If campId is provided, save to campdetails collection as donor registration
+    if (data.campId) {
+      const db = mongoose.connection.db;
+      const campDetailsCollection = db?.collection('campdetails');
+      
+      if (!campDetailsCollection) {
+        throw new Error('Database connection error');
+      }
+
+      const donorRegistration = {
+        campId: new mongoose.Types.ObjectId(data.campId),
+        ngoId: new mongoose.Types.ObjectId(currentUser.id),
+        donorName: data.donorName,
+        email: data.email,
+        bloodType: data.bloodType,
+        contactDetails: data.contactDetails,
+        personalInfo: data.personalInfo,
+        location: data.location,
+        availability: data.availability,
+        status: data.status || 'registered',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+
+      const result = await campDetailsCollection.insertOne(donorRegistration);
+
+      return NextResponse.json({
+        message: 'Donor registered successfully for camp',
+        registration: {
+          id: result.insertedId,
+          status: donorRegistration.status,
+          createdAt: donorRegistration.createdAt,
+        }
+      }, { status: 201 });
+    }
+
+    // Original registration flow (without camp)
 
     // Create registration with userId from authenticated user
     const registration = await Registration.create({
@@ -39,7 +78,7 @@ export async function POST(request: NextRequest) {
       contactMethod: data.contactMethod,
       consentAccuracy: data.consentAccuracy,
       consentContact: data.consentContact,
-      status: 'pending',
+      status: 'requested',
     });
 
     return NextResponse.json({

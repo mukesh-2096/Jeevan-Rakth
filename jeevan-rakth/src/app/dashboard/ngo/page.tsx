@@ -1,11 +1,18 @@
 "use client";
-import { useRouter } from "next/navigation";
-import Link from "next/link";
+import { useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
+import Navbar from "./components/Navbar";
+import Sidebar from "./components/Sidebar";
+import Overview from "./components/Overview";
+import DonorManagement from "./components/DonorManagement";
+import BloodDrives from "./components/BloodDrives";
+import Registrations from "./components/Registrations";
+import ProfileSettings from "./components/ProfileSettings";
 
 export default function NGODashboard() {
-  const router = useRouter();
   const { user, loading } = useAuth({ requiredRole: 'ngo' });
+  const [activeTab, setActiveTab] = useState('overview');
+  const [refreshOverview, setRefreshOverview] = useState(0);
 
   // Show loading state while checking authentication
   if (loading) {
@@ -24,42 +31,35 @@ export default function NGODashboard() {
     return null;
   }
 
-  const handleLogout = async () => {
-    try {
-      await fetch('/api/auth/logout', { method: 'POST' });
-      router.push('/login');
-    } catch (error) {
-      console.error('Logout failed:', error);
-    }
+  const handleApproveRegistration = () => {
+    setRefreshOverview(prev => prev + 1);
+  };
+
+  const handleRejectRegistration = () => {
+    setRefreshOverview(prev => prev + 1);
   };
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white shadow">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
-          <h1 className="text-2xl font-bold text-gray-900">NGO Dashboard</h1>
-          <button
-            onClick={handleLogout}
-            className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition cursor-pointer"
-          >
-            Logout
-          </button>
-        </div>
-      </header>
-
-      {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="bg-white rounded-lg shadow p-6">
-          <h2 className="text-xl font-semibold text-gray-900 mb-4">Welcome, {user.name}!</h2>
-          <p className="text-gray-600 mb-2">
-            This is your NGO dashboard. Here you can organize donation drives, manage events, and coordinate with donors and hospitals.
-          </p>
-          <p className="text-sm text-gray-500">
-            Logged in as: <span className="font-medium">{user.email}</span>
-          </p>
-        </div>
-      </main>
+      <Navbar userName={user.name || 'NGO User'} userEmail={user.email} />
+      
+      <div className="flex">
+        <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
+        
+        <main className="flex-1 p-8">
+          {activeTab === 'overview' && <Overview refreshTrigger={refreshOverview} />}
+          {activeTab === 'donors' && (
+            <DonorManagement 
+              onApprove={handleApproveRegistration}
+              onReject={handleRejectRegistration}
+              onRefreshOverview={() => setRefreshOverview(prev => prev + 1)}
+            />
+          )}
+          {activeTab === 'blood-drives' && <BloodDrives />}
+          {activeTab === 'registrations' && <Registrations />}
+          {activeTab === 'settings' && <ProfileSettings />}
+        </main>
+      </div>
     </div>
   );
 }

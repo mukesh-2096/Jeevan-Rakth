@@ -1,4 +1,5 @@
 "use client";
+import { useState, useEffect } from "react";
 
 interface OverviewProps {
   user: {
@@ -6,30 +7,67 @@ interface OverviewProps {
     email: string;
     role: string;
   } | null;
+  refreshTrigger?: number;
 }
 
-export default function Overview({ user }: OverviewProps) {
+type DonorStats = {
+  totalDonors: number;
+  activeDonors: number;
+  pendingRequests: number;
+  totalDonations: number;
+  approvedToday: number;
+  donatedToday: number;
+};
+
+export default function Overview({ user, refreshTrigger = 0 }: OverviewProps) {
+  const [stats, setStats] = useState<DonorStats>({
+    totalDonors: 0,
+    activeDonors: 0,
+    pendingRequests: 0,
+    totalDonations: 0,
+    approvedToday: 0,
+    donatedToday: 0,
+  });
+  const [loading, setLoading] = useState(true);
+
+  // Fetch dashboard stats
+  const fetchStats = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch('/api/hospital/stats', {
+        credentials: 'include',
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        setStats(data);
+      }
+    } catch (error) {
+      console.error('Error fetching stats:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (user) {
+      fetchStats();
+    }
+  }, [user, refreshTrigger]);
   const bloodInventory = [
-    { group: 'A+', units: 487, status: 'Good', percentage: 85, color: 'green' },
-    { group: 'A-', units: 142, status: 'Low', percentage: 45, color: 'yellow' },
-    { group: 'B-', units: 98, status: 'Critical', percentage: 28, color: 'red' },
-    { group: 'AB+', units: 276, status: 'Good', percentage: 78, color: 'green' },
-    { group: 'AB-', units: 67, status: 'Low', percentage: 38, color: 'yellow' },
-    { group: 'O+', units: 892, status: 'Good', percentage: 95, color: 'green' },
-    { group: 'O-', units: 362, status: 'Good', percentage: 82, color: 'green' },
+    { group: 'A+', units: 0, status: 'Critical', percentage: 0, color: 'red' },
+    { group: 'A-', units: 0, status: 'Critical', percentage: 0, color: 'red' },
+    { group: 'B+', units: 0, status: 'Critical', percentage: 0, color: 'red' },
+    { group: 'B-', units: 0, status: 'Critical', percentage: 0, color: 'red' },
+    { group: 'AB+', units: 0, status: 'Critical', percentage: 0, color: 'red' },
+    { group: 'AB-', units: 0, status: 'Critical', percentage: 0, color: 'red' },
+    { group: 'O+', units: 0, status: 'Critical', percentage: 0, color: 'red' },
+    { group: 'O-', units: 0, status: 'Critical', percentage: 0, color: 'red' },
   ];
 
-  const recentRequests = [
-    { hospital: 'Apollo Hospital', bloodGroup: 'O-', units: 4, location: 'Delhi', time: '5 mins ago', priority: 'Critical' },
-    { hospital: 'Max Healthcare', bloodGroup: 'A+', units: 2, location: 'Noida', time: '15 mins ago', priority: 'High' },
-    { hospital: 'Fortis Hospital', bloodGroup: 'B+', units: 3, location: 'Bangalore', time: '1 hour ago', priority: 'Medium' },
-  ];
+  const recentRequests: any[] = [];
 
-  const upcomingDonations = [
-    { name: 'Rahul Sharma', bloodGroup: 'O+', time: 'Today, 2:30 PM', location: 'Blood Bank Center, Delhi' },
-    { name: 'Priya Patel', bloodGroup: 'A-', time: 'Today, 4:00 PM', location: 'City Hospital, Mumbai' },
-    { name: 'Amit Kumar', bloodGroup: 'B+', time: 'Tomorrow, 10:00 AM', location: 'Red Cross Center, Pune' },
-  ];
+  const upcomingDonations: any[] = [];
 
   return (
     <div className="p-6">
@@ -48,10 +86,12 @@ export default function Overview({ user }: OverviewProps) {
                 <path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z" />
               </svg>
             </div>
-            <span className="text-sm font-medium text-green-600">+12.5%</span>
+            {stats.donatedToday > 0 && (
+              <span className="text-sm font-medium text-green-600">+{stats.donatedToday} today</span>
+            )}
           </div>
-          <p className="text-3xl font-bold text-gray-900 mb-1">2,847</p>
-          <p className="text-sm text-gray-600">Total Blood Units</p>
+          <p className="text-3xl font-bold text-gray-900 mb-1">{loading ? '...' : stats.totalDonations}</p>
+          <p className="text-sm text-gray-600">Total Donations</p>
         </div>
 
         <div className="bg-white rounded-lg border border-gray-200 p-6">
@@ -61,9 +101,11 @@ export default function Overview({ user }: OverviewProps) {
                 <path d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
               </svg>
             </div>
-            <span className="text-sm font-medium text-green-600">+8.2%</span>
+            {stats.approvedToday > 0 && (
+              <span className="text-sm font-medium text-green-600">+{stats.approvedToday} today</span>
+            )}
           </div>
-          <p className="text-3xl font-bold text-gray-900 mb-1">10,234</p>
+          <p className="text-3xl font-bold text-gray-900 mb-1">{loading ? '...' : stats.activeDonors}</p>
           <p className="text-sm text-gray-600">Active Donors</p>
         </div>
 
@@ -74,9 +116,9 @@ export default function Overview({ user }: OverviewProps) {
                 <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
               </svg>
             </div>
-            <span className="text-sm font-medium text-red-600">-5.1%</span>
+            <span className="text-sm font-medium text-yellow-600">{stats.pendingRequests > 0 ? 'Needs Review' : ''}</span>
           </div>
-          <p className="text-3xl font-bold text-gray-900 mb-1">23</p>
+          <p className="text-3xl font-bold text-gray-900 mb-1">{loading ? '...' : stats.pendingRequests}</p>
           <p className="text-sm text-gray-600">Pending Requests</p>
         </div>
 
@@ -87,10 +129,12 @@ export default function Overview({ user }: OverviewProps) {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
               </svg>
             </div>
-            <span className="text-sm font-medium text-green-600">+18.3%</span>
+            <span className="text-sm font-medium text-gray-600">
+              {stats.totalDonors > 0 ? `${Math.round((stats.activeDonors / stats.totalDonors) * 100)}%` : '0%'}
+            </span>
           </div>
-          <p className="text-3xl font-bold text-gray-900 mb-1">1,492</p>
-          <p className="text-sm text-gray-600">Lives Saved</p>
+          <p className="text-3xl font-bold text-gray-900 mb-1">{loading ? '...' : stats.totalDonors}</p>
+          <p className="text-sm text-gray-600">Total Donors</p>
         </div>
       </div>
 

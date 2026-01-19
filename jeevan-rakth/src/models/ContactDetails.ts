@@ -17,6 +17,12 @@ export interface IContactDetails extends Document {
     state?: string;
     pincode?: string;
   };
+  // NGO-specific fields
+  registrationNumber?: string;
+  description?: string;
+  // Hospital-specific fields
+  hospitalName?: string;
+  licenseNumber?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -64,6 +70,20 @@ const ContactDetailsSchema: Schema = new Schema(
       district: { type: String },
       state: { type: String },
       pincode: { type: String },
+    },
+    // NGO-specific fields
+    registrationNumber: {
+      type: String,
+    },
+    description: {
+      type: String,
+    },
+    // Hospital-specific fields
+    hospitalName: {
+      type: String,
+    },
+    licenseNumber: {
+      type: String,
     },
   },
   {

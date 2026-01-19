@@ -9,10 +9,30 @@ interface EmergencyRequestsProps {
   } | null;
 }
 
+type Request = {
+  id: number;
+  hospital: string;
+  doctor: string;
+  bloodType: string;
+  unitsNeeded: number;
+  location: string;
+  locationFull: string;
+  requested: string;
+  reason: string;
+  phone: string;
+  priority: string;
+  status: string;
+  priorityColor: string;
+  statusColor: string;
+};
+
 export default function EmergencyRequests({ user }: EmergencyRequestsProps) {
   const [searchQuery, setSearchQuery] = useState("");
-
-  const requestsData = [
+  const [filterPriority, setFilterPriority] = useState<string>('all');
+  const [filterStatus, setFilterStatus] = useState<string>('all');
+  const [showFulfillModal, setShowFulfillModal] = useState(false);
+  const [selectedRequest, setSelectedRequest] = useState<Request | null>(null);
+  const [requests, setRequests] = useState<Request[]>([
     {
       id: 1,
       hospital: 'Apollo Hospital',
@@ -93,11 +113,56 @@ export default function EmergencyRequests({ user }: EmergencyRequestsProps) {
       priorityColor: 'bg-red-100 text-red-700',
       statusColor: 'bg-gray-100 text-gray-700'
     },
-  ];
+  ]);
 
-  const pendingCount = requestsData.filter(r => r.status === 'Pending').length;
-  const fulfilledToday = requestsData.filter(r => r.status === 'Fulfilled').length;
-  const criticalCount = requestsData.filter(r => r.priority === 'Critical').length;
+  // Filtering
+  let filteredRequests = requests;
+
+  if (searchQuery) {
+    filteredRequests = filteredRequests.filter(req =>
+      req.hospital.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      req.bloodType.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      req.doctor.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      req.locationFull.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+  }
+
+  if (filterPriority !== 'all') {
+    filteredRequests = filteredRequests.filter(req => req.priority === filterPriority);
+  }
+
+  if (filterStatus !== 'all') {
+    filteredRequests = filteredRequests.filter(req => req.status === filterStatus);
+  }
+
+  const pendingCount = requests.filter(r => r.status === 'Pending').length;
+  const fulfilledToday = requests.filter(r => r.status === 'Fulfilled').length;
+  const criticalCount = requests.filter(r => r.priority === 'Critical' && r.status === 'Pending').length;
+
+  const handleFulfillRequest = () => {
+    if (selectedRequest) {
+      setRequests(requests.map(req =>
+        req.id === selectedRequest.id
+          ? { ...req, status: 'Fulfilled', statusColor: 'bg-green-100 text-green-700' }
+          : req
+      ));
+      setShowFulfillModal(false);
+      setSelectedRequest(null);
+    }
+  };
+
+  const handleCancelRequest = (id: number) => {
+    setRequests(requests.map(req =>
+      req.id === id
+        ? { ...req, status: 'Cancelled', statusColor: 'bg-gray-100 text-gray-700' }
+        : req
+    ));
+  };
+
+  const handleContactHospital = (phone: string) => {
+    // In a real app, this would initiate a call or open a communication modal
+    window.location.href = `tel:${phone}`;
+  };
 
   return (
     <div className="p-4 sm:p-6 w-full max-w-full overflow-x-hidden box-border">
@@ -149,6 +214,116 @@ export default function EmergencyRequests({ user }: EmergencyRequestsProps) {
         </div>
       </div>
 
+      {/* Search and Filters */}
+      <div className="bg-white rounded-lg border border-gray-200 p-4 mb-6 w-full max-w-full overflow-hidden">
+        <div className="flex flex-col gap-4">
+          {/* Search */}
+          <div className="flex-1 relative min-w-0 w-full">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+            </div>
+            <input
+              type="text"
+              placeholder="Search by hospital, blood type, doctor, location..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
+            />
+          </div>
+
+          {/* Filters */}
+          <div className="flex flex-col sm:flex-row gap-4">
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-medium text-gray-700">Priority:</span>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setFilterPriority('all')}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition ${
+                    filterPriority === 'all' 
+                      ? 'bg-red-600 text-white' 
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  All
+                </button>
+                <button
+                  onClick={() => setFilterPriority('Critical')}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition ${
+                    filterPriority === 'Critical' 
+                      ? 'bg-red-600 text-white' 
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  Critical
+                </button>
+                <button
+                  onClick={() => setFilterPriority('High')}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition ${
+                    filterPriority === 'High' 
+                      ? 'bg-red-600 text-white' 
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  High
+                </button>
+                <button
+                  onClick={() => setFilterPriority('Medium')}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition ${
+                    filterPriority === 'Medium' 
+                      ? 'bg-red-600 text-white' 
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  Medium
+                </button>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-medium text-gray-700">Status:</span>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setFilterStatus('all')}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition ${
+                    filterStatus === 'all' 
+                      ? 'bg-red-600 text-white' 
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  All
+                </button>
+                <button
+                  onClick={() => setFilterStatus('Pending')}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition ${
+                    filterStatus === 'Pending' 
+                      ? 'bg-red-600 text-white' 
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  Pending
+                </button>
+                <button
+                  onClick={() => setFilterStatus('Fulfilled')}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition ${
+                    filterStatus === 'Fulfilled' 
+                      ? 'bg-red-600 text-white' 
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  Fulfilled
+                </button>
+              </div>
+            </div>
+
+            <div className="sm:ml-auto text-sm text-gray-600 flex items-center">
+              Showing {filteredRequests.length} of {requests.length} requests
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* All Requests Section */}
       <div className="mb-4">
         <h2 className="text-lg sm:text-xl font-bold text-gray-900">All Requests</h2>
@@ -156,7 +331,16 @@ export default function EmergencyRequests({ user }: EmergencyRequestsProps) {
 
       {/* Requests List */}
       <div className="space-y-4 w-full max-w-full">
-        {requestsData.map((request) => (
+        {filteredRequests.length === 0 ? (
+          <div className="bg-white rounded-lg border border-gray-200 p-12 text-center">
+            <svg className="w-16 h-16 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+            <p className="text-gray-600 text-lg">No requests found</p>
+            <p className="text-gray-400 text-sm mt-2">Try adjusting your search or filters</p>
+          </div>
+        ) : (
+          filteredRequests.map((request) => (
           <div key={request.id} className="bg-white rounded-lg border border-gray-200 p-4 sm:p-6 hover:shadow-md transition w-full max-w-full overflow-hidden">
             {/* Hospital Name and Status Badges */}
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4 w-full">
@@ -255,17 +439,119 @@ export default function EmergencyRequests({ user }: EmergencyRequestsProps) {
             {/* Action Buttons */}
             <div className="flex flex-col sm:flex-row gap-3">
               {request.status === 'Pending' && (
-                <button className="flex-1 sm:flex-initial px-6 py-2.5 bg-red-600 text-white rounded-lg hover:bg-red-700 transition cursor-pointer font-medium">
-                  Fulfill Request
-                </button>
+                <>
+                  <button 
+                    onClick={() => {
+                      setSelectedRequest(request);
+                      setShowFulfillModal(true);
+                    }}
+                    className="flex-1 sm:flex-initial px-6 py-2.5 bg-red-600 text-white rounded-lg hover:bg-red-700 transition cursor-pointer font-medium"
+                  >
+                    Fulfill Request
+                  </button>
+                  <button 
+                    onClick={() => handleCancelRequest(request.id)}
+                    className="flex-1 sm:flex-initial px-6 py-2.5 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition cursor-pointer font-medium"
+                  >
+                    Cancel Request
+                  </button>
+                </>
               )}
-              <button className="flex-1 sm:flex-initial px-6 py-2.5 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition cursor-pointer font-medium">
+              <button 
+                onClick={() => handleContactHospital(request.phone)}
+                className="flex-1 sm:flex-initial px-6 py-2.5 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition cursor-pointer font-medium"
+              >
                 Contact Hospital
               </button>
             </div>
           </div>
-        ))}
+        ))
+        )}
       </div>
+
+      {/* Fulfill Request Modal */}
+      {showFulfillModal && selectedRequest && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg max-w-md w-full p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-bold text-gray-900">Fulfill Request</h2>
+              <button 
+                onClick={() => {
+                  setShowFulfillModal(false);
+                  setSelectedRequest(null);
+                }}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div className="bg-gray-50 rounded-lg p-4">
+                <h3 className="font-semibold text-gray-900 mb-3">{selectedRequest.hospital}</h3>
+                <div className="space-y-2 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Doctor:</span>
+                    <span className="font-medium text-gray-900">{selectedRequest.doctor}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Blood Type:</span>
+                    <span className="font-bold text-red-600">{selectedRequest.bloodType}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Units Needed:</span>
+                    <span className="font-medium text-gray-900">{selectedRequest.unitsNeeded} units</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Location:</span>
+                    <span className="font-medium text-gray-900">{selectedRequest.location}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Priority:</span>
+                    <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${selectedRequest.priorityColor}`}>
+                      {selectedRequest.priority}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                <div className="flex gap-3">
+                  <svg className="w-5 h-5 text-yellow-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                  </svg>
+                  <div>
+                    <p className="text-sm font-medium text-yellow-800 mb-1">Confirm Fulfillment</p>
+                    <p className="text-xs text-yellow-700">
+                      Please ensure you have {selectedRequest.unitsNeeded} units of {selectedRequest.bloodType} blood available before confirming.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex gap-3 mt-6">
+              <button
+                onClick={() => {
+                  setShowFulfillModal(false);
+                  setSelectedRequest(null);
+                }}
+                className="flex-1 px-4 py-2.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleFulfillRequest}
+                className="flex-1 px-4 py-2.5 bg-red-600 text-white rounded-lg hover:bg-red-700 transition"
+              >
+                Confirm Fulfillment
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
