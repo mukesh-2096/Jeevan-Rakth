@@ -224,6 +224,7 @@ function LoginForm() {
             {/* GOOGLE LOGIN */}
             <button
               type="button"
+              onClick={() => router.push('/under-development')}
               className="w-full py-3.5 border-2 border-gray-300 rounded-lg font-semibold text-gray-700 hover:bg-gray-50 transition flex items-center justify-center gap-3 cursor-pointer"
             >
               <svg className="w-5 h-5" viewBox="0 0 24 24">

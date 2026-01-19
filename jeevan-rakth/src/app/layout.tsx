@@ -5,6 +5,9 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "JeevanRakth - Blood Donation Network Platform",
   description: "India's most advanced blood donation network platform",
+  icons: {
+    icon: '/icon.svg',
+  },
 };
 
 export default function RootLayout({
