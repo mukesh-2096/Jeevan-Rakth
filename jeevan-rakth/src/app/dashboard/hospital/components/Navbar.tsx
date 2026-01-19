@@ -21,7 +21,6 @@ interface NavbarProps {
 }
 
 export default function Navbar({ activeTab, user, pendingRegistrations = [], onNotificationClick }: NavbarProps) {
-  const [searchQuery, setSearchQuery] = useState("");
   const [showNotificationDropdown, setShowNotificationDropdown] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -42,22 +41,9 @@ export default function Navbar({ activeTab, user, pendingRegistrations = [], onN
   return (
     <nav className="bg-white border-b border-gray-200 px-6 py-4 sticky top-0 z-20">
       <div className="flex items-center justify-between">
-        {/* Search Bar */}
-        <div className="flex-1 max-w-2xl">
-          <div className="relative">
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-              </svg>
-            </div>
-            <input
-              type="text"
-              placeholder="Search donors, blood groups, hospitals..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
-            />
-          </div>
+        {/* Page Title */}
+        <div className="flex-1">
+          <h1 className="text-2xl font-bold text-gray-900 capitalize">{activeTab.replace('-', ' ')}</h1>
         </div>
 
         {/* Notification Icon */}

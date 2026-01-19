@@ -7,6 +7,7 @@ import Overview from "./components/Overview";
 import BloodInventory from "./components/BloodInventory";
 import DonorManagement from "./components/DonorManagement";
 import EmergencyRequests from './components/EmergencyRequests';
+import Settings from './components/Settings';
 import ToastNotification from "@/components/Toast";
 
 type PendingRegistration = {
@@ -232,18 +233,7 @@ export default function HospitalDashboard() {
             />
           )}
           {activeTab === "emergency-requests" && <EmergencyRequests user={user} />}
-          {activeTab === "nearby-centers" && (
-            <div className="p-6">
-              <h1 className="text-2xl font-bold text-gray-900">Nearby Centers</h1>
-              <p className="text-gray-600 mt-2">View and connect with nearby blood centers</p>
-            </div>
-          )}
-          {activeTab === "settings" && (
-            <div className="p-6">
-              <h1 className="text-2xl font-bold text-gray-900">Settings</h1>
-              <p className="text-gray-600 mt-2">Configure your hospital dashboard preferences</p>
-            </div>
-          )}
+          {activeTab === "settings" && <Settings user={user} />}
         </main>
       </div>
 
