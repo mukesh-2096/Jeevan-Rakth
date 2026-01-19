@@ -4,7 +4,7 @@ import dbConnect from '@/lib/mongodb';
 import User from '@/models/User';
 import ContactDetails from '@/models/ContactDetails';
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     const user = await getCurrentUser();
 
@@ -60,6 +60,12 @@ export async function GET(request: NextRequest) {
           state: '',
           pincode: '',
         },
+        // NGO-specific fields
+        registrationNumber: contactDetails?.registrationNumber || '',
+        description: contactDetails?.description || '',
+        // Hospital-specific fields
+        hospitalName: contactDetails?.hospitalName || '',
+        licenseNumber: contactDetails?.licenseNumber || '',
       },
     });
   } catch (error) {
@@ -95,6 +101,10 @@ export async function POST(request: NextRequest) {
       bloodGroup,
       weight,
       address,
+      registrationNumber,
+      description,
+      hospitalName,
+      licenseNumber,
     } = body;
 
     await dbConnect();
@@ -133,6 +143,10 @@ export async function POST(request: NextRequest) {
         bloodGroup,
         weight,
         address,
+        registrationNumber,
+        description,
+        hospitalName,
+        licenseNumber,
       },
       { new: true, upsert: true, runValidators: true }
     );
@@ -161,6 +175,10 @@ export async function POST(request: NextRequest) {
           state: '',
           pincode: '',
         },
+        registrationNumber: contactDetails?.registrationNumber || '',
+        description: contactDetails?.description || '',
+        hospitalName: contactDetails?.hospitalName || '',
+        licenseNumber: contactDetails?.licenseNumber || '',
       },
     });
   } catch (error: unknown) {
@@ -172,4 +190,9 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   }
+}
+
+// PATCH handler (same as POST for backward compatibility)
+export async function PATCH(request: NextRequest) {
+  return POST(request);
 }

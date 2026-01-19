@@ -124,8 +124,8 @@ const RegistrationSchema: Schema = new Schema({
   status: {
     type: String,
     required: true,
-    enum: ['pending', 'active', 'inactive'],
-    default: 'pending',
+    enum: ['requested', 'approved', 'donated', 'rejected', 'inactive'],
+    default: 'requested',
   },
 }, {
   timestamps: true,
