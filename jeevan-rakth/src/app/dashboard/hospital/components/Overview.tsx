@@ -35,6 +35,13 @@ type UpcomingDonation = {
   status: string;
 };
 
+type BloodInventoryItem = {
+  bloodType: string;
+  units: number;
+  status: string;
+  availableDonors: number;
+};
+
 export default function Overview({ user, refreshTrigger = 0 }: OverviewProps) {
   const [stats, setStats] = useState<DonorStats>({
     totalDonors: 0,
@@ -46,6 +53,7 @@ export default function Overview({ user, refreshTrigger = 0 }: OverviewProps) {
   });
   const [recentRequests, setRecentRequests] = useState<RecentRequest[]>([]);
   const [upcomingDonations, setUpcomingDonations] = useState<UpcomingDonation[]>([]);
+  const [bloodInventory, setBloodInventory] = useState<BloodInventoryItem[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Fetch dashboard stats
@@ -108,23 +116,41 @@ export default function Overview({ user, refreshTrigger = 0 }: OverviewProps) {
     }
   };
 
+  // Fetch blood inventory
+  const fetchBloodInventory = async () => {
+    try {
+      const response = await fetch('/api/hospital/blood-inventory', {
+        credentials: 'include',
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        setBloodInventory(data.inventory || []);
+      }
+    } catch (error) {
+      console.error('Error fetching blood inventory:', error);
+    }
+  };
+
   useEffect(() => {
     if (user) {
       fetchStats();
       fetchRecentRequests();
       fetchUpcomingDonations();
+      fetchBloodInventory();
     }
   }, [user, refreshTrigger]);
-  const bloodInventory = [
-    { group: 'A+', units: 0, status: 'Critical', percentage: 0, color: 'red' },
-    { group: 'A-', units: 0, status: 'Critical', percentage: 0, color: 'red' },
-    { group: 'B+', units: 0, status: 'Critical', percentage: 0, color: 'red' },
-    { group: 'B-', units: 0, status: 'Critical', percentage: 0, color: 'red' },
-    { group: 'AB+', units: 0, status: 'Critical', percentage: 0, color: 'red' },
-    { group: 'AB-', units: 0, status: 'Critical', percentage: 0, color: 'red' },
-    { group: 'O+', units: 0, status: 'Critical', percentage: 0, color: 'red' },
-    { group: 'O-', units: 0, status: 'Critical', percentage: 0, color: 'red' },
-  ];
+  // Calculate percentage and color for blood inventory display
+  const getInventoryColor = (status: string) => {
+    if (status === 'Good') return 'green';
+    if (status === 'Low') return 'yellow';
+    return 'red';
+  };
+
+  const getInventoryPercentage = (units: number) => {
+    const maxUnits = 100; // Maximum expected units for display
+    return Math.min((units / maxUnits) * 100, 100);
+  };
 
   return (
     <div className="p-6">
@@ -205,30 +231,44 @@ export default function Overview({ user, refreshTrigger = 0 }: OverviewProps) {
             </svg>
           </div>
           <div className="space-y-4">
-            {bloodInventory.map((blood) => (
-              <div key={blood.group}>
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-3">
-                    <span className="text-lg font-bold text-red-600 w-12">{blood.group}</span>
-                    <div>
-                      <span className="text-sm font-semibold text-gray-900">{blood.units} units</span>
-                      <p className="text-xs text-gray-500">{blood.status}</p>
+            {bloodInventory.length === 0 ? (
+              <div className="text-center py-8">
+                <svg className="w-12 h-12 text-gray-300 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                </svg>
+                <p className="text-gray-500 text-sm">No inventory data</p>
+              </div>
+            ) : bloodInventory.map((blood) => {
+              const color = getInventoryColor(blood.status);
+              const percentage = getInventoryPercentage(blood.units);
+              return (
+                <div key={blood.bloodType}>
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-3">
+                      <span className="text-lg font-bold text-red-600 w-12">{blood.bloodType}</span>
+                      <div>
+                        <span className="text-sm font-semibold text-gray-900">{blood.units} units</span>
+                        <p className="text-xs text-gray-500">{blood.status}</p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <span className="text-sm font-medium text-gray-600">{Math.round(percentage)}%</span>
+                      <p className="text-xs text-gray-500">+{blood.availableDonors} donors</p>
                     </div>
                   </div>
-                  <span className="text-sm font-medium text-gray-600">{blood.percentage}%</span>
+                  <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div
+                      className={`h-2 rounded-full transition-all ${
+                        color === 'green' ? 'bg-green-500' :
+                        color === 'yellow' ? 'bg-yellow-500' :
+                        'bg-red-500'
+                      }`}
+                      style={{ width: `${percentage}%` }}
+                    ></div>
+                  </div>
                 </div>
-                <div className="w-full bg-gray-200 rounded-full h-2">
-                  <div
-                    className={`h-2 rounded-full ${
-                      blood.color === 'green' ? 'bg-green-500' :
-                      blood.color === 'yellow' ? 'bg-yellow-500' :
-                      'bg-red-500'
-                    }`}
-                    style={{ width: `${blood.percentage}%` }}
-                  ></div>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
 

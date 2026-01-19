@@ -31,7 +31,17 @@ export default function EmergencyRequests({ user }: EmergencyRequestsProps) {
   const [filterPriority, setFilterPriority] = useState<string>('all');
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [showFulfillModal, setShowFulfillModal] = useState(false);
+  const [showCreateModal, setShowCreateModal] = useState(false);
   const [selectedRequest, setSelectedRequest] = useState<Request | null>(null);
+  const [newRequest, setNewRequest] = useState({
+    bloodType: 'A+',
+    unitsNeeded: 1,
+    reason: '',
+    priority: 'Medium',
+    doctor: '',
+    phone: '',
+    location: '',
+  });
   const [requests, setRequests] = useState<Request[]>([
     {
       id: 1,
@@ -164,12 +174,60 @@ export default function EmergencyRequests({ user }: EmergencyRequestsProps) {
     window.location.href = `tel:${phone}`;
   };
 
+  const handleCreateRequest = () => {
+    const priorityColors: { [key: string]: string } = {
+      'Critical': 'bg-red-100 text-red-700',
+      'High': 'bg-orange-100 text-orange-700',
+      'Medium': 'bg-yellow-100 text-yellow-700',
+    };
+
+    const newReq: Request = {
+      id: requests.length + 1,
+      hospital: user?.name || 'Your Hospital',
+      doctor: newRequest.doctor,
+      bloodType: newRequest.bloodType,
+      unitsNeeded: newRequest.unitsNeeded,
+      location: '0 km',
+      locationFull: newRequest.location,
+      requested: 'Just now',
+      reason: newRequest.reason,
+      phone: newRequest.phone,
+      priority: newRequest.priority,
+      status: 'Pending',
+      priorityColor: priorityColors[newRequest.priority],
+      statusColor: 'bg-blue-100 text-blue-700'
+    };
+
+    setRequests([newReq, ...requests]);
+    setShowCreateModal(false);
+    setNewRequest({
+      bloodType: 'A+',
+      unitsNeeded: 1,
+      reason: '',
+      priority: 'Medium',
+      doctor: '',
+      phone: '',
+      location: '',
+    });
+  };
+
   return (
     <div className="p-4 sm:p-6 w-full max-w-full overflow-x-hidden box-border">
       {/* Header */}
-      <div className="mb-6 w-full max-w-full">
-        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">Emergency Requests</h1>
-        <p className="text-sm sm:text-base text-gray-600">Manage urgent blood requirement requests in real time</p>
+      <div className="mb-6 w-full max-w-full flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">Emergency Requests</h1>
+          <p className="text-sm sm:text-base text-gray-600">Manage urgent blood requirement requests in real time</p>
+        </div>
+        <button
+          onClick={() => setShowCreateModal(true)}
+          className="px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition flex items-center gap-2 font-medium whitespace-nowrap self-start sm:self-auto"
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+          </svg>
+          Create Request
+        </button>
       </div>
 
       {/* Stats Cards */}
@@ -547,6 +605,133 @@ export default function EmergencyRequests({ user }: EmergencyRequestsProps) {
                 className="flex-1 px-4 py-2.5 bg-red-600 text-white rounded-lg hover:bg-red-700 transition"
               >
                 Confirm Fulfillment
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Create Request Modal */}
+      {showCreateModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg max-w-2xl w-full p-6 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-bold text-gray-900">Create Emergency Request</h2>
+              <button 
+                onClick={() => setShowCreateModal(false)}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Blood Type *</label>
+                  <select
+                    value={newRequest.bloodType}
+                    onChange={(e) => setNewRequest({ ...newRequest, bloodType: e.target.value })}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                  >
+                    <option value="A+">A+</option>
+                    <option value="A-">A-</option>
+                    <option value="B+">B+</option>
+                    <option value="B-">B-</option>
+                    <option value="AB+">AB+</option>
+                    <option value="AB-">AB-</option>
+                    <option value="O+">O+</option>
+                    <option value="O-">O-</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Units Needed *</label>
+                  <input
+                    type="number"
+                    min="1"
+                    value={newRequest.unitsNeeded}
+                    onChange={(e) => setNewRequest({ ...newRequest, unitsNeeded: parseInt(e.target.value) || 1 })}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Doctor Name *</label>
+                  <input
+                    type="text"
+                    value={newRequest.doctor}
+                    onChange={(e) => setNewRequest({ ...newRequest, doctor: e.target.value })}
+                    placeholder="Dr. John Doe"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Contact Phone *</label>
+                  <input
+                    type="tel"
+                    value={newRequest.phone}
+                    onChange={(e) => setNewRequest({ ...newRequest, phone: e.target.value })}
+                    placeholder="+91 98765 43210"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Location *</label>
+                <input
+                  type="text"
+                  value={newRequest.location}
+                  onChange={(e) => setNewRequest({ ...newRequest, location: e.target.value })}
+                  placeholder="City, State"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Priority *</label>
+                <select
+                  value={newRequest.priority}
+                  onChange={(e) => setNewRequest({ ...newRequest, priority: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                >
+                  <option value="Critical">Critical</option>
+                  <option value="High">High</option>
+                  <option value="Medium">Medium</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Reason for Request *</label>
+                <textarea
+                  value={newRequest.reason}
+                  onChange={(e) => setNewRequest({ ...newRequest, reason: e.target.value })}
+                  placeholder="Describe the emergency situation..."
+                  rows={4}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                />
+              </div>
+            </div>
+
+            <div className="flex gap-3 mt-6">
+              <button
+                onClick={() => setShowCreateModal(false)}
+                className="flex-1 px-4 py-2.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleCreateRequest}
+                disabled={!newRequest.doctor || !newRequest.phone || !newRequest.location || !newRequest.reason}
+                className="flex-1 px-4 py-2.5 bg-red-600 text-white rounded-lg hover:bg-red-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Create Request
               </button>
             </div>
           </div>
